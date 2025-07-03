@@ -160,6 +160,35 @@ export default function TransactionsPage() {
     });
   }
 
+  const handleExportCSV = () => {
+    const headers = ['Date', 'Description', 'Category', 'Account', 'Amount'];
+    const csvRows = [headers.join(',')];
+
+    transactions.forEach(transaction => {
+      const signedAmount = transaction.type === 'income' ? transaction.amount : -transaction.amount;
+      const row = [
+        new Date(transaction.date).toLocaleDateString(),
+        `"${transaction.description.replace(/"/g, '""')}"`,
+        transaction.category,
+        `"${getAccountName(transaction.accountId).replace(/"/g, '""')}"`,
+        signedAmount,
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'transactions.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -168,7 +197,7 @@ export default function TransactionsPage() {
           <Button variant="outline">
             <Upload className="mr-2 h-4 w-4" /> Import CSV
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportCSV}>
             <Download className="mr-2 h-4 w-4" /> Export CSV
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
