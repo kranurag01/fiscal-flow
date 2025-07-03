@@ -99,6 +99,14 @@ export default function RemindersPage() {
     });
     setEditOpen(true);
   }
+  
+  const handleDialogChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setAddOpen(false);
+      setEditOpen(false);
+      setSelectedReminder(null);
+    }
+  };
 
   return (
     <>
@@ -166,7 +174,7 @@ export default function RemindersPage() {
       </div>
 
       {/* Add/Edit Dialog */}
-      <Dialog open={isAddOpen || isEditOpen} onOpenChange={isEditOpen ? setEditOpen : setAddOpen}>
+      <Dialog open={isAddOpen || isEditOpen} onOpenChange={handleDialogChange}>
           <DialogContent>
               <DialogHeader>
                   <DialogTitle>{isEditOpen ? 'Edit Reminder' : 'Add New Reminder'}</DialogTitle>
@@ -244,5 +252,3 @@ export default function RemindersPage() {
     </>
   );
 }
-
-    
