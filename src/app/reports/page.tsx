@@ -1,142 +1,202 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { transactions } from '@/lib/data';
-import { Bar, BarChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, Cell, Line, LineChart } from 'recharts';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { accounts, budgets, transactions } from '@/lib/data';
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { subDays, format } from 'date-fns';
+import { subDays, format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
-export default function ReportsPage() {
+export default function AnalyticsPage() {
+  const netWorth = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+
+  const thisMonthTransactions = transactions.filter(t => {
+    const transactionDate = new Date(t.date);
+    const start = startOfMonth(new Date());
+    const end = endOfMonth(new Date());
+    return transactionDate >= start && transactionDate <= end;
+  });
+
+  const monthlyIncome = thisMonthTransactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const monthlyExpense = thisMonthTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const netEarnings = monthlyIncome - monthlyExpense;
+
   const last30Days = subDays(new Date(), 30);
-  const recentTransactions = transactions.filter(t => new Date(t.date) >= last30Days);
-  
-  // Income vs Expense Data
-  const incomeVsExpenseData = recentTransactions.reduce((acc, curr) => {
-    const day = format(new Date(curr.date), 'MMM dd');
-    if (!acc[day]) {
-      acc[day] = { date: day, income: 0, expense: 0 };
-    }
-    if (curr.type === 'income') {
-      acc[day].income += curr.amount;
-    } else if (curr.type === 'expense') {
-      acc[day].expense += curr.amount;
-    }
-    return acc;
-  }, {} as Record<string, { date: string, income: number, expense: number }>);
-  const incomeVsExpenseChartData = Object.values(incomeVsExpenseData).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-
-  // Spending by Category Data
-  const spendingByCategory = recentTransactions
-    .filter((t) => t.type === 'expense')
+  const dailySummaryData = transactions
+    .filter(t => new Date(t.date) >= last30Days)
     .reduce((acc, curr) => {
-      acc[curr.category] = (acc[curr.category] || 0) + curr.amount;
+      const day = format(new Date(curr.date), 'MMM dd');
+      if (!acc[day]) {
+        acc[day] = { date: day, income: 0, expense: 0 };
+      }
+      if (curr.type === 'income') {
+        acc[day].income += curr.amount;
+      } else {
+        acc[day].expense += curr.amount;
+      }
+      return acc;
+    }, {} as Record<string, { date: string, income: number, expense: number }>);
+  const dailySummaryChartData = Object.values(dailySummaryData).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const budgetSummaryData = budgets.map(b => ({
+    name: b.category,
+    spent: b.spent,
+    remaining: Math.max(0, b.amount - b.spent),
+  }));
+
+  const accountBalanceData = (() => {
+    const dateInterval = eachDayOfInterval({
+      start: subDays(new Date(), 29),
+      end: new Date(),
+    });
+
+    let balances = accounts.reduce((acc, account) => {
+      acc[account.id] = account.balance;
       return acc;
     }, {} as Record<string, number>);
 
-  const pieChartData = Object.entries(spendingByCategory)
-    .map(([name, value]) => ({ name, value }))
-    .sort((a,b) => b.value - a.value);
+    const dailyData = [];
 
-  // Cash Flow Data
-  let runningBalance = 25000; // Starting with a mock balance
-  const cashFlowData = incomeVsExpenseChartData.map(d => {
-    runningBalance = runningBalance + d.income - d.expense;
-    return {
-      date: d.date,
-      balance: runningBalance,
+    for (let i = dateInterval.length - 1; i >= 0; i--) {
+      const date = dateInterval[i];
+      const formattedDate = format(date, 'MMM dd');
+
+      const dataPoint: Record<string, string | number> = { date: formattedDate };
+      for (const accId in balances) {
+        dataPoint[accId] = balances[accId];
+      }
+      dailyData.push(dataPoint);
+
+      const txnsOnThisDay = transactions.filter(
+        (t) => format(new Date(t.date), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+      );
+
+      txnsOnThisDay.forEach((t) => {
+        if (t.type === 'income') {
+          balances[t.accountId] -= t.amount;
+        } else {
+          balances[t.accountId] += t.amount;
+        }
+      });
     }
-  });
 
+    return dailyData.reverse();
+  })();
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Reports</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
       </div>
 
-      <Tabs defaultValue="income-expense" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="income-expense">Income vs. Expense</TabsTrigger>
-          <TabsTrigger value="spending-category">Spending by Category</TabsTrigger>
-          <TabsTrigger value="cash-flow">Cash Flow</TabsTrigger>
-        </TabsList>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Net Worth</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(netWorth)}</div>
+            <p className="text-xs text-muted-foreground">Total value of your assets</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Net Earnings (This Month)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${netEarnings >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+              {formatCurrency(netEarnings)}
+            </div>
+            <p className="text-xs text-muted-foreground">Income minus expenses</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Total Income (This Month)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(monthlyIncome)}</div>
+            <p className="text-xs text-muted-foreground">Total earnings this month</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Total Expenses (This Month)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(monthlyExpense)}</div>
+            <p className="text-xs text-muted-foreground">Total spending this month</p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Balances Over Time</CardTitle>
+            <CardDescription>Last 30 days</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={accountBalanceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis tickFormatter={(value) => formatCurrency(value, 'USD', 0)} fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Legend />
+                {accounts.map((account, index) => (
+                  <Area key={account.id} type="monotone" dataKey={account.id} name={account.name} stroke={COLORS[index % COLORS.length]} fill={COLORS[index % COLORS.length]} fillOpacity={0.3} />
+                ))}
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="income-expense" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Income vs. Expense (Last 30 Days)</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={incomeVsExpenseChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis tickFormatter={(value) => formatCurrency(value, 'USD', 0)} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  <Legend />
-                  <Bar dataKey="income" fill="hsl(var(--chart-1))" name="Income" />
-                  <Bar dataKey="expense" fill="hsl(var(--chart-2))" name="Expense" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        <Card>
+          <CardHeader>
+            <CardTitle>Daily Summary</CardTitle>
+            <CardDescription>Income vs. Expense for the last 30 days</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dailySummaryChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false}/>
+                <YAxis tickFormatter={(value) => formatCurrency(value, 'USD', 0)} fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{fill: 'hsl(var(--muted))'}}/>
+                <Legend />
+                <Bar dataKey="income" fill="hsl(var(--chart-1))" name="Income" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expense" fill="hsl(var(--chart-2))" name="Expense" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
-        <TabsContent value="spending-category" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Spending by Category (Last 30 Days)</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={pieChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={120}
-                    fill="#8884d8"
-                    dataKey="value"
-                    nameKey="name"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {pieChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="cash-flow" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cash Flow (Last 30 Days)</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={cashFlowData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis tickFormatter={(value) => formatCurrency(value, 'USD', 0)} />
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  <Legend />
-                  <Line type="monotone" dataKey="balance" stroke="hsl(var(--chart-1))" name="Account Balance" />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+       <Card>
+          <CardHeader>
+            <CardTitle>Budget Summary</CardTitle>
+            <CardDescription>How you're tracking against your budgets</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={budgetSummaryData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" tickFormatter={(value) => formatCurrency(value, 'USD', 0)} fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis type="category" dataKey="name" width={100} fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{fill: 'hsl(var(--muted))'}} />
+                <Legend />
+                <Bar dataKey="spent" name="Spent" stackId="a" fill="hsl(var(--chart-1))" />
+                <Bar dataKey="remaining" name="Remaining" stackId="a" fill="hsl(var(--chart-2))" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
     </div>
   );
 }

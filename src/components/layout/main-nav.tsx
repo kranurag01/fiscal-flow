@@ -26,7 +26,7 @@ const menuItems = [
   { href: '/accounts', label: 'Accounts', icon: Wallet },
   { href: '/transactions', label: 'Transactions', icon: ArrowRightLeft },
   { href: '/budgets', label: 'Budgets', icon: Target },
-  { href: '/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/reports', label: 'Analytics', icon: BarChart3 },
   { href: '/predictions', label: 'Predictions', icon: Bot },
 ];
 
