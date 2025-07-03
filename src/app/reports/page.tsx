@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -88,6 +89,46 @@ export default function AnalyticsPage() {
     return dailyData.reverse();
   })();
 
+  const netWorthOverTimeData = (() => {
+    const dateInterval = eachDayOfInterval({
+      start: subDays(new Date(), 29),
+      end: new Date(),
+    });
+
+    let currentNetWorth = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const dailyData: { date: string; netWorth: number }[] = [];
+
+    // Iterate backwards from today to 30 days ago
+    for (let i = dateInterval.length - 1; i >= 0; i--) {
+      const date = dateInterval[i];
+      const formattedDate = format(date, 'MMM dd');
+      
+      // Push the net worth for the current day
+      dailyData.push({ date: formattedDate, netWorth: currentNetWorth });
+
+      // Find transactions for this day
+      const txnsOnThisDay = transactions.filter(
+        (t) => format(new Date(t.date), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+      );
+
+      // Adjust net worth by reversing the day's transactions
+      txnsOnThisDay.forEach((t) => {
+        // We ignore transfers for net worth calculation as it's an internal movement of funds
+        if (t.category === 'Transfers') return;
+
+        if (t.type === 'income') {
+          // To go back in time, we subtract income
+          currentNetWorth -= t.amount;
+        } else {
+          // To go back in time, we add back expenses
+          currentNetWorth += t.amount;
+        }
+      });
+    }
+    // The data is in reverse chronological order, so reverse it
+    return dailyData.reverse();
+  })();
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -147,11 +188,29 @@ export default function AnalyticsPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis tickFormatter={(value) => formatCurrency(value, 'USD', 0)} fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{fill: 'hsl(var(--muted))'}} />
                 <Legend />
                 {accounts.map((account, index) => (
                   <Area key={account.id} type="monotone" dataKey={account.id} name={account.name} stroke={COLORS[index % COLORS.length]} fill={COLORS[index % COLORS.length]} fillOpacity={0.3} />
                 ))}
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Net Worth Over Time</CardTitle>
+            <CardDescription>Last 30 days</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={netWorthOverTimeData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis tickFormatter={(value) => formatCurrency(value, 'USD', 0)} fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{fill: 'hsl(var(--muted))'}} />
+                <Area type="monotone" dataKey="netWorth" name="Net Worth" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -176,9 +235,8 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </div>
 
-       <Card>
+        <Card>
           <CardHeader>
             <CardTitle>Budget Summary</CardTitle>
             <CardDescription>How you're tracking against your budgets</CardDescription>
@@ -197,6 +255,7 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
     </div>
   );
 }
