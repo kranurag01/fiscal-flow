@@ -15,6 +15,43 @@ export const accounts: Account[] = [
   { id: 'acc_4', name: 'Cash Wallet', typeId: 'type_4', balance: 340.0 },
 ];
 
+export const transactionCategories = [
+  {
+    name: 'Food & Drink',
+    subcategories: ['Groceries', 'Restaurants', 'Coffee Shops', 'Bars'],
+  },
+  {
+    name: 'Shopping',
+    subcategories: ['Clothing', 'Electronics', 'Home Goods', 'Books'],
+  },
+  {
+    name: 'Transportation',
+    subcategories: ['Gasoline', 'Public Transit', 'Ride Share', 'Parking'],
+  },
+  {
+    name: 'Subscriptions',
+    subcategories: ['Streaming', 'Software', 'Gym', 'News'],
+  },
+  {
+    name: 'Utilities',
+    subcategories: ['Electricity', 'Water', 'Internet', 'Phone'],
+  },
+  {
+    name: 'Health & Fitness',
+    subcategories: ['Gym Membership', 'Doctor', 'Pharmacy'],
+  },
+  {
+    name: 'Entertainment',
+    subcategories: ['Movies', 'Concerts', 'Games'],
+  },
+  { name: 'Salary', subcategories: [] },
+  { name: 'Freelance', subcategories: [] },
+  { name: 'Transfers', subcategories: [] },
+  { name: 'Other', subcategories: [] },
+];
+
+export const transactionLabels = ['Personal', 'Work', 'Household', 'Reimbursable'];
+
 export const transactions: Transaction[] = [
   {
     id: 'txn_1',
@@ -42,7 +79,8 @@ export const transactions: Transaction[] = [
     description: 'Groceries from Whole Foods',
     amount: 154.32,
     type: 'expense',
-    category: 'Groceries',
+    category: 'Food & Drink',
+    subcategory: 'Groceries',
     label: 'Household',
     accountId: 'acc_3',
   },
@@ -53,6 +91,7 @@ export const transactions: Transaction[] = [
     amount: 15.99,
     type: 'expense',
     category: 'Subscriptions',
+    subcategory: 'Streaming',
     accountId: 'acc_3',
   },
   {
@@ -81,7 +120,8 @@ export const transactions: Transaction[] = [
     description: 'Dinner at Italian Restaurant',
     amount: 85.5,
     type: 'expense',
-    category: 'Restaurants',
+    category: 'Food & Drink',
+    subcategory: 'Restaurants',
     accountId: 'acc_3',
   },
   {
@@ -91,6 +131,7 @@ export const transactions: Transaction[] = [
     amount: 55.20,
     type: 'expense',
     category: 'Transportation',
+    subcategory: 'Gasoline',
     accountId: 'acc_1',
   },
   {
@@ -109,6 +150,7 @@ export const transactions: Transaction[] = [
     amount: 42.10,
     type: 'expense',
     category: 'Shopping',
+    subcategory: 'Home Goods',
     label: 'Personal',
     accountId: 'acc_3',
   },
@@ -119,6 +161,7 @@ export const transactions: Transaction[] = [
     amount: 49.99,
     type: 'expense',
     category: 'Health & Fitness',
+    subcategory: 'Gym Membership',
     accountId: 'acc_3',
   },
   {
@@ -128,6 +171,7 @@ export const transactions: Transaction[] = [
     amount: 32.00,
     type: 'expense',
     category: 'Entertainment',
+    subcategory: 'Movies',
     accountId: 'acc_3',
   },
   {
@@ -136,7 +180,8 @@ export const transactions: Transaction[] = [
     description: 'Groceries from Trader Joe\'s',
     amount: 98.75,
     type: 'expense',
-    category: 'Groceries',
+    category: 'Food & Drink',
+    subcategory: 'Groceries',
     label: 'Household',
     accountId: 'acc_1',
   },
@@ -147,6 +192,7 @@ export const transactions: Transaction[] = [
     amount: 75.60,
     type: 'expense',
     category: 'Utilities',
+    subcategory: 'Electricity',
     accountId: 'acc_1',
   },
   {
@@ -155,7 +201,8 @@ export const transactions: Transaction[] = [
     description: 'Lunch with colleagues',
     amount: 25.40,
     type: 'expense',
-    category: 'Restaurants',
+    category: 'Food & Drink',
+    subcategory: 'Restaurants',
     label: 'Work',
     accountId: 'acc_4',
   },
@@ -166,15 +213,18 @@ export const transactions: Transaction[] = [
     amount: 18.99,
     type: 'expense',
     category: 'Shopping',
+    subcategory: 'Books',
     accountId: 'acc_3',
   },
 ];
 
 
 export const budgets: Budget[] = [
-  { id: 'bud_1', category: 'Groceries', amount: 500, spent: 253.07 },
-  { id: 'bud_2', category: 'Restaurants', amount: 200, spent: 110.9 },
-  { id: 'bud_3', category: 'Shopping', amount: 300, spent: 61.09 },
-  { id: 'bud_4', category: 'Transportation', amount: 150, spent: 55.2 },
-  { id: 'bud_5', category: 'Entertainment', amount: 100, spent: 150.00 }, // Overspent
+  { id: 'bud_1', category: 'Food & Drink', amount: 700, spent: 369.72 },
+  { id: 'bud_2', category: 'Shopping', amount: 300, spent: 61.09 },
+  { id: 'bud_3', category: 'Transportation', amount: 150, spent: 55.2 },
+  { id: 'bud_4', category: 'Entertainment', amount: 100, spent: 32.00 },
+  { id: 'bud_5', category: 'Subscriptions', amount: 50, spent: 15.99 },
+  { id: 'bud_6', category: 'Health & Fitness', amount: 50, spent: 49.99 },
+  { id: 'bud_7', category: 'Utilities', amount: 100, spent: 75.60 },
 ];

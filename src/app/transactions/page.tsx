@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -11,7 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { transactions as initialTransactions, accounts } from '@/lib/data';
+import {
+  transactions as initialTransactions,
+  accounts,
+  transactionCategories,
+  transactionLabels,
+} from '@/lib/data';
 import type { Transaction } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -124,6 +128,18 @@ export default function TransactionsPage() {
   });
 
   const transactionType = form.watch('type');
+  const selectedCategory = form.watch('category');
+
+  const subcategories = useMemo(() => {
+    if (!selectedCategory) return [];
+    const categoryData = transactionCategories.find(c => c.name === selectedCategory);
+    return categoryData?.subcategories || [];
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    form.setValue('subcategory', '');
+  }, [selectedCategory, form]);
+
 
   const getAccountName = (accountId: string) => {
     return accounts.find((acc) => acc.id === accountId)?.name || 'N/A';
@@ -499,9 +515,22 @@ export default function TransactionsPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Category</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Food & Drink" {...field} />
-                            </FormControl>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a category" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {transactionCategories
+                                  .filter(c => c.name !== 'Transfers')
+                                  .map(cat => (
+                                  <SelectItem key={cat.name} value={cat.name}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -512,9 +541,20 @@ export default function TransactionsPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Subcategory (Optional)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Coffee Shops" {...field} />
-                            </FormControl>
+                            <Select onValueChange={field.onChange} value={field.value || ''} disabled={subcategories.length === 0}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a subcategory" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {subcategories.map(sub => (
+                                  <SelectItem key={sub} value={sub}>
+                                    {sub}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -525,9 +565,20 @@ export default function TransactionsPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Label (Optional)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., Work Expense" {...field} />
-                            </FormControl>
+                             <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ''}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a label" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {transactionLabels.map(label => (
+                                  <SelectItem key={label} value={label}>
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
