@@ -1,3 +1,4 @@
+
 export type AccountClassification = 'asset' | 'liability';
 
 export type AccountType = {
@@ -33,6 +34,11 @@ export type Budget = {
   amount: number;
 };
 
+export type TransactionCategory = {
+  name: string;
+  subcategories: string[];
+};
+
 export type Reminder = {
   id: string;
   description: string;
@@ -42,3 +48,5 @@ export type Reminder = {
   accountId: string;
   isPaid: boolean;
 };
+
+    
