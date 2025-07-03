@@ -23,6 +23,8 @@ export const transactions: Transaction[] = [
     amount: 5.75,
     type: 'expense',
     category: 'Food & Drink',
+    subcategory: 'Coffee Shops',
+    label: 'Personal',
     accountId: 'acc_3',
   },
   {
@@ -41,6 +43,7 @@ export const transactions: Transaction[] = [
     amount: 154.32,
     type: 'expense',
     category: 'Groceries',
+    label: 'Household',
     accountId: 'acc_3',
   },
   {
@@ -106,6 +109,7 @@ export const transactions: Transaction[] = [
     amount: 42.10,
     type: 'expense',
     category: 'Shopping',
+    label: 'Personal',
     accountId: 'acc_3',
   },
   {
@@ -133,6 +137,7 @@ export const transactions: Transaction[] = [
     amount: 98.75,
     type: 'expense',
     category: 'Groceries',
+    label: 'Household',
     accountId: 'acc_1',
   },
   {
@@ -151,6 +156,7 @@ export const transactions: Transaction[] = [
     amount: 25.40,
     type: 'expense',
     category: 'Restaurants',
+    label: 'Work',
     accountId: 'acc_4',
   },
   {

@@ -60,6 +60,8 @@ const formSchema = z.object({
   amount: z.coerce.number().positive('Amount must be a positive number.'),
   type: z.enum(['income', 'expense', 'transfer'], { required_error: 'Type is required.' }),
   category: z.string().optional(),
+  subcategory: z.string().optional(),
+  label: z.string().optional(),
   accountId: z.string().optional(),
   fromAccountId: z.string().optional(),
   toAccountId: z.string().optional(),
@@ -164,6 +166,8 @@ export default function TransactionsPage() {
           amount: data.amount,
           type: data.type as 'income' | 'expense',
           category: data.category!,
+          subcategory: data.subcategory,
+          label: data.label,
           accountId: data.accountId!,
         };
         setTransactions((prev) => [newTransaction, ...prev]);
@@ -171,12 +175,19 @@ export default function TransactionsPage() {
     setOpenAdd(false);
     form.reset({
         description: '',
+        amount: undefined,
         type: 'expense',
+        category: '',
+        subcategory: '',
+        label: '',
+        accountId: undefined,
+        fromAccountId: undefined,
+        toAccountId: undefined,
     });
   }
 
   const handleExportCSV = () => {
-    const headers = ['Date', 'Description', 'Category', 'Account', 'Amount'];
+    const headers = ['Date', 'Description', 'Category', 'Subcategory', 'Label', 'Account', 'Amount'];
     const csvRows = [headers.join(',')];
 
     transactions.forEach(transaction => {
@@ -185,6 +196,8 @@ export default function TransactionsPage() {
         new Date(transaction.date).toLocaleDateString(),
         `"${transaction.description.replace(/"/g, '""')}"`,
         transaction.category,
+        transaction.subcategory || '',
+        transaction.label || '',
         `"${getAccountName(transaction.accountId).replace(/"/g, '""')}"`,
         signedAmount,
       ];
@@ -248,6 +261,8 @@ export default function TransactionsPage() {
                     amount: Math.abs(amount),
                     type: amount >= 0 ? 'income' : 'expense',
                     category: row.Category,
+                    subcategory: row.Subcategory,
+                    label: row.Label,
                     accountId: account.id,
                 });
             });
@@ -491,6 +506,32 @@ export default function TransactionsPage() {
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="subcategory"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Subcategory (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Coffee Shops" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="label"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Label (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Work Expense" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                        <FormField
                         control={form.control}
                         name="accountId"
@@ -533,6 +574,7 @@ export default function TransactionsPage() {
               <TableHead>Date</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Label</TableHead>
               <TableHead>Account</TableHead>
               <TableHead className="text-right">Amount</TableHead>
             </TableRow>
@@ -580,7 +622,13 @@ export default function TransactionsPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{transaction.category}</Badge>
+                    <div>
+                      <Badge variant="outline">{transaction.category}</Badge>
+                      {transaction.subcategory && <div className="text-xs text-muted-foreground mt-1">{transaction.subcategory}</div>}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {transaction.label && <Badge variant="secondary">{transaction.label}</Badge>}
                   </TableCell>
                   <TableCell>{getAccountName(transaction.accountId)}</TableCell>
                   <TableCell

@@ -14,6 +14,8 @@ export type Transaction = {
   amount: number;
   type: 'income' | 'expense';
   category: string;
+  subcategory?: string;
+  label?: string;
   accountId: string;
   transferId?: string;
 };
