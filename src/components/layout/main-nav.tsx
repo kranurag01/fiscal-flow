@@ -7,6 +7,7 @@ import {
   Target,
   BarChart3,
   Bot,
+  Settings,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -28,6 +29,7 @@ const menuItems = [
   { href: '/budgets', label: 'Budgets', icon: Target },
   { href: '/reports', label: 'Analytics', icon: BarChart3 },
   { href: '/predictions', label: 'Predictions', icon: Bot },
+  { href: '/configuration', label: 'Configuration', icon: Settings },
 ];
 
 export function MainNav({ pathname }: MainNavProps) {
