@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
@@ -31,7 +32,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -120,6 +120,8 @@ function TransactionsPageContent() {
   const [openImport, setOpenImport] = useState(false);
   const [parsedData, setParsedData] = useState<Transaction[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
+  const [importAccountId, setImportAccountId] = useState<string | undefined>();
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -130,6 +132,13 @@ function TransactionsPageContent() {
       router.replace('/transactions', { scroll: false });
     }
   }, [searchParams, router]);
+
+  useEffect(() => {
+    if (importFile && importAccountId) {
+        handleFileParse(importFile, importAccountId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [importFile, importAccountId]);
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
@@ -245,7 +254,7 @@ function TransactionsPageContent() {
     URL.revokeObjectURL(url);
   };
   
-  const handleFileParse = (file: File) => {
+  const handleFileParse = (file: File, accountId: string) => {
     setParsedData([]);
     setImportError(null);
 
@@ -253,9 +262,15 @@ function TransactionsPageContent() {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-            const requiredColumns = ['Date', 'Description', 'Category', 'Account', 'Amount'];
-            if (!results.meta.fields || !requiredColumns.every(col => results.meta.fields!.includes(col))) {
-                setImportError(`Invalid CSV format. Required columns are: ${requiredColumns.join(', ')}`);
+            const headers = results.meta.fields?.map(h => h.toLowerCase()) || [];
+            
+            const dateHeader = results.meta.fields?.[headers.indexOf('date')];
+            const descHeader = results.meta.fields?.[headers.indexOf('description')];
+            const costHeader = results.meta.fields?.[headers.find(h => h.includes('cost') || h.includes('amount'))!];
+            const categoryHeader = results.meta.fields?.[headers.indexOf('category')];
+
+            if (!dateHeader || !descHeader || !costHeader) {
+                setImportError(`Invalid CSV format. Required columns must contain: Date, Description, and Cost/Amount.`);
                 return;
             }
             
@@ -265,33 +280,21 @@ function TransactionsPageContent() {
             (results.data as any[]).forEach((row, index) => {
                 if (Object.values(row).every(val => val === "")) return; // Skip empty rows
 
-                const account = accounts.find((acc) => acc.name === row.Account);
-                if (!account) {
-                    errors.push(`Row ${index + 2}: Account "${row.Account}" not found.`);
-                    return;
-                }
-
-                const amount = parseFloat(row.Amount);
+                const amount = parseFloat(row[costHeader]);
                 if (isNaN(amount)) {
-                    errors.push(`Row ${index + 2}: Invalid amount "${row.Amount}".`);
-                    return;
-                }
-
-                if (row.Category === 'Transfers') {
-                    errors.push(`Row ${index + 2}: CSV import for "Transfers" is not supported. Please add transfers manually.`);
+                    errors.push(`Row ${index + 2}: Invalid amount "${row[costHeader]}".`);
                     return;
                 }
                 
                 newTransactions.push({
                     id: `imported_${new Date().getTime()}_${index}`,
-                    date: new Date(row.Date).toISOString(),
-                    description: row.Description,
+                    date: new Date(row[dateHeader]).toISOString(),
+                    description: row[descHeader],
                     amount: Math.abs(amount),
-                    type: amount >= 0 ? 'income' : 'expense',
-                    category: row.Category,
-                    subcategory: row.Subcategory,
-                    label: row.Label,
-                    accountId: account.id,
+                    // For simplified imports (like Splitwise), we assume it's an expense.
+                    type: 'expense', 
+                    category: row[categoryHeader] || 'Reimbursement', // Use category if present, else default
+                    accountId: accountId,
                 });
             });
 
@@ -314,6 +317,8 @@ function TransactionsPageContent() {
     setOpenImport(false);
     setParsedData([]);
     setImportError(null);
+    setImportFile(null);
+    setImportAccountId(undefined);
   }
 
   return (
@@ -322,7 +327,15 @@ function TransactionsPageContent() {
         <h2 className="text-3xl font-bold tracking-tight">Transactions</h2>
         <div className="flex items-center space-x-2">
           
-          <Dialog open={openImport} onOpenChange={setOpenImport}>
+          <Dialog open={openImport} onOpenChange={(isOpen) => {
+            setOpenImport(isOpen);
+            if (!isOpen) {
+                setParsedData([]);
+                setImportError(null);
+                setImportFile(null);
+                setImportAccountId(undefined);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Upload className="mr-2 h-4 w-4" /> Import CSV
@@ -332,15 +345,36 @@ function TransactionsPageContent() {
               <DialogHeader>
                   <DialogTitle>Import Transactions</DialogTitle>
                   <DialogDescription>
-                      Select a CSV file to import. Columns must be: Date, Description, Category, Account, Amount.
+                      Select an account and a CSV file to import. The file should contain columns for 'Date', 'Description', and 'Cost' or 'Amount'.
                   </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                  <Input 
-                      type="file" 
-                      accept=".csv"
-                      onChange={(e) => e.target.files && handleFileParse(e.target.files[0])}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <FormLabel>Destination Account</FormLabel>
+                            <Select onValueChange={setImportAccountId} value={importAccountId}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select an account" />
+                                </SelectTrigger>
+                              <SelectContent>
+                                {accounts.map(account => (
+                                   <SelectItem key={account.id} value={account.id}>
+                                    {account.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <FormLabel>CSV File</FormLabel>
+                            <Input 
+                                type="file" 
+                                accept=".csv"
+                                onChange={(e) => e.target.files && setImportFile(e.target.files[0])}
+                                disabled={!importAccountId}
+                            />
+                        </div>
+                  </div>
                   {importError && (
                       <Alert variant="destructive">
                           <AlertTitle>Import Error</AlertTitle>
@@ -359,7 +393,6 @@ function TransactionsPageContent() {
                                           <TableHead>Date</TableHead>
                                           <TableHead>Description</TableHead>
                                           <TableHead>Category</TableHead>
-                                          <TableHead>Account</TableHead>
                                           <TableHead className="text-right">Amount</TableHead>
                                       </TableRow>
                                   </TableHeader>
@@ -373,16 +406,10 @@ function TransactionsPageContent() {
                                           <TableCell>
                                               <Badge variant="outline">{transaction.category}</Badge>
                                           </TableCell>
-                                          <TableCell>{getAccountName(transaction.accountId)}</TableCell>
                                           <TableCell
-                                          className={`text-right font-semibold ${
-                                              transaction.type === 'income'
-                                              ? 'text-primary'
-                                              : 'text-destructive'
-                                          }`}
+                                            className="text-right font-semibold text-destructive"
                                           >
-                                          {transaction.type === 'income' ? '+' : '-'}
-                                          {formatCurrency(transaction.amount)}
+                                          - {formatCurrency(transaction.amount)}
                                           </TableCell>
                                       </TableRow>
                                       ))}
@@ -395,7 +422,7 @@ function TransactionsPageContent() {
               <DialogFooter>
                   <Button variant="outline" onClick={() => setOpenImport(false)}>Cancel</Button>
                   <Button onClick={handleConfirmImport} disabled={parsedData.length === 0 || !!importError}>
-                      Import {parsedData.length} transactions
+                      Import {parsedData.length > 0 ? parsedData.length : ''} transactions
                   </Button>
               </DialogFooter>
             </DialogContent>
@@ -585,8 +612,8 @@ function TransactionsPageContent() {
                               </FormControl>
                               <SelectContent>
                                 {transactionLabels.map(label => (
-                                  <SelectItem key={label} value={label}>
-                                    {label}
+                                  <SelectItem key={label.name} value={label.name}>
+                                    {label.name}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -721,3 +748,5 @@ export default function TransactionsPage() {
     </Suspense>
   )
 }
+
+    
