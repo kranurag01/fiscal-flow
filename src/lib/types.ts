@@ -1,3 +1,12 @@
+export type AccountClassification = 'asset' | 'liability';
+
+export type AccountType = {
+  id: string;
+  name: string;
+  classification: AccountClassification;
+  icon: string; // Lucide icon name
+};
+
 export type Transaction = {
   id: string;
   date: string; // ISO 8601 format
@@ -12,7 +21,7 @@ export type Transaction = {
 export type Account = {
   id: string;
   name: string;
-  type: 'checking' | 'savings' | 'credit-card' | 'cash';
+  typeId: string; // Replaces 'type'
   balance: number;
 };
 

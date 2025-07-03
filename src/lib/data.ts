@@ -1,11 +1,18 @@
-import type { Account, Budget, Transaction } from './types';
+import type { Account, Budget, Transaction, AccountType } from './types';
 import { subDays } from 'date-fns';
 
+export const accountTypes: AccountType[] = [
+  { id: 'type_1', name: 'Checking', classification: 'asset', icon: 'Landmark' },
+  { id: 'type_2', name: 'Savings', classification: 'asset', icon: 'Banknote' },
+  { id: 'type_3', name: 'Credit Card', classification: 'liability', icon: 'CreditCard' },
+  { id: 'type_4', name: 'Cash', classification: 'asset', icon: 'Wallet' },
+];
+
 export const accounts: Account[] = [
-  { id: 'acc_1', name: 'Checking Account', type: 'checking', balance: 5230.5 },
-  { id: 'acc_2', name: 'Savings Account', type: 'savings', balance: 15820.75 },
-  { id: 'acc_3', name: 'Visa Credit Card', type: 'credit-card', balance: -890.21 },
-  { id: 'acc_4', name: 'Cash Wallet', type: 'cash', balance: 340.0 },
+  { id: 'acc_1', name: 'Checking Account', typeId: 'type_1', balance: 5230.5 },
+  { id: 'acc_2', name: 'Savings Account', typeId: 'type_2', balance: 15820.75 },
+  { id: 'acc_3', name: 'Visa Credit Card', typeId: 'type_3', balance: -890.21 },
+  { id: 'acc_4', name: 'Cash Wallet', typeId: 'type_4', balance: 340.0 },
 ];
 
 export const transactions: Transaction[] = [
