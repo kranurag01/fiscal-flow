@@ -321,6 +321,26 @@ function TransactionsPageContent() {
     setImportAccountId(undefined);
   }
 
+  const handleDownloadTemplate = () => {
+    const csvContent = [
+      "Date,Description,Cost",
+      "2024-07-29,Lunch with client,-25.50",
+      "2024-07-28,Monthly Salary,5000",
+      "2024-07-27,New Keyboard,-150",
+    ].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'transactions_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -349,6 +369,11 @@ function TransactionsPageContent() {
                   </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
+                  <div className="flex justify-start">
+                    <Button variant="outline" onClick={handleDownloadTemplate}>
+                        <Download className="mr-2 h-4 w-4" /> Download Template
+                    </Button>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <FormLabel>Destination Account</FormLabel>
@@ -748,5 +773,7 @@ export default function TransactionsPage() {
     </Suspense>
   )
 }
+
+    
 
     
