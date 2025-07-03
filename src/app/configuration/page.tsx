@@ -8,7 +8,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { accounts as initialAccounts, accountTypes as initialAccountTypes, transactions } from '@/lib/data';
+import { 
+    accounts as initialAccounts, 
+    accountTypes as initialAccountTypes, 
+    transactionCategories as initialTransactionCategories,
+    transactionLabels as initialTransactionLabels,
+} from '@/lib/data';
 import type { Account, AccountType } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,6 +21,7 @@ import { Banknote, CreditCard, Landmark, MoreVertical, Pencil, PlusCircle, Trash
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const iconMap: { [key: string]: React.ReactNode } = {
   Landmark: <Landmark className="h-5 w-5 text-muted-foreground" />,
@@ -312,37 +318,177 @@ function AccountTypesSettings({ accountTypes, setAccountTypes }: { accountTypes:
     );
 }
 
-function CategoriesSettings() {
-    const uniqueCategories = [...new Set(transactions.map((t) => t.category))].sort();
+const categoryFormSchema = z.object({
+    name: z.string().min(1, 'Category name is required.'),
+});
+type CategoryFormValues = z.infer<typeof categoryFormSchema>;
+
+const subcategoryFormSchema = z.object({
+    name: z.string().min(1, 'Subcategory name is required.'),
+});
+type SubcategoryFormValues = z.infer<typeof subcategoryFormSchema>;
+
+
+function CategoriesSettings({ categories, setCategories }: { categories: { name: string; subcategories: string[] }[], setCategories: React.Dispatch<React.SetStateAction<{ name: string; subcategories: string[] }[]>> }) {
+    const [isCategoryDialogOpen, setCategoryDialogOpen] = useState(false);
+    const [isSubcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
+    const [currentCategory, setCurrentCategory] = useState<string | null>(null);
+    
+    const categoryForm = useForm<CategoryFormValues>({
+        resolver: zodResolver(categoryFormSchema),
+        defaultValues: { name: '' },
+    });
+
+    const subcategoryForm = useForm<SubcategoryFormValues>({
+        resolver: zodResolver(subcategoryFormSchema),
+        defaultValues: { name: '' },
+    });
+
+    function onCategorySubmit(data: CategoryFormValues) {
+        setCategories(prev => [...prev, { name: data.name, subcategories: [] }]);
+        setCategoryDialogOpen(false);
+        categoryForm.reset();
+    }
+
+    function onSubcategorySubmit(data: SubcategoryFormValues) {
+        if (!currentCategory) return;
+        setCategories(prev => prev.map(cat => 
+            cat.name === currentCategory 
+                ? { ...cat, subcategories: [...cat.subcategories, data.name].sort() }
+                : cat
+        ));
+        setSubcategoryDialogOpen(false);
+        subcategoryForm.reset();
+        setCurrentCategory(null);
+    }
+
+    function openSubcategoryDialog(categoryName: string) {
+        setCurrentCategory(categoryName);
+        setSubcategoryDialogOpen(true);
+    }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Transaction Categories</CardTitle>
-                <CardDescription>Manage your transaction categories and subcategories.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-2">
-                    {uniqueCategories.map(category => (
-                        <div key={category} className="flex items-center justify-between rounded-md border p-3">
-                            <p className="font-medium">{category}</p>
-                             <Button variant="ghost" size="icon" disabled>
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    ))}
-                </div>
-            </CardContent>
-             <CardFooter>
-                 <Button disabled>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Category
-                </Button>
-             </CardFooter>
-        </Card>
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Transaction Categories</CardTitle>
+                    <CardDescription>Manage your transaction categories and subcategories.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Accordion type="multiple" className="w-full">
+                        {categories.map((category) => (
+                            <AccordionItem value={category.name} key={category.name}>
+                                <AccordionTrigger>{category.name}</AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-2 pl-4">
+                                        {category.subcategories.length > 0 ? (
+                                            category.subcategories.map((sub) => (
+                                                <div key={sub} className="flex items-center justify-between rounded-md border p-3">
+                                                    <p className="font-medium">{sub}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button variant="ghost" size="icon" disabled><Pencil className="h-4 w-4" /></Button>
+                                                        <Button variant="ghost" size="icon" disabled><Trash2 className="h-4 w-4" /></Button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">No subcategories defined.</p>
+                                        )}
+                                        <Button variant="outline" size="sm" onClick={() => openSubcategoryDialog(category.name)}>
+                                            <PlusCircle className="mr-2 h-3 w-3" /> Add Subcategory
+                                        </Button>
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                </CardContent>
+                 <CardFooter>
+                     <Button onClick={() => setCategoryDialogOpen(true)}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Category
+                    </Button>
+                 </CardFooter>
+            </Card>
+
+            {/* Add Category Dialog */}
+            <Dialog open={isCategoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New Category</DialogTitle>
+                    </DialogHeader>
+                    <Form {...categoryForm}>
+                        <form onSubmit={categoryForm.handleSubmit(onCategorySubmit)} className="space-y-4">
+                            <FormField
+                                control={categoryForm.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Category Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Personal Care" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button type="submit">Create Category</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Subcategory Dialog */}
+            <Dialog open={isSubcategoryDialogOpen} onOpenChange={setSubcategoryDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Subcategory to "{currentCategory}"</DialogTitle>
+                    </DialogHeader>
+                    <Form {...subcategoryForm}>
+                        <form onSubmit={subcategoryForm.handleSubmit(onSubcategorySubmit)} className="space-y-4">
+                            <FormField
+                                control={subcategoryForm.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Subcategory Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Haircut" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter>
+                                <Button type="submit">Add Subcategory</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+        </>
     )
 }
 
-function LabelsSettings() {
+const labelFormSchema = z.object({
+    name: z.string().min(1, 'Label name is required.'),
+});
+type LabelFormValues = z.infer<typeof labelFormSchema>;
+
+function LabelsSettings({ labels, setLabels }: { labels: string[], setLabels: React.Dispatch<React.SetStateAction<string[]>> }) {
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const form = useForm<LabelFormValues>({
+        resolver: zodResolver(labelFormSchema),
+        defaultValues: { name: '' },
+    });
+
+    function onSubmit(data: LabelFormValues) {
+        setLabels(prev => [...prev, data.name].sort());
+        setIsDialogOpen(false);
+        form.reset();
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -350,10 +496,52 @@ function LabelsSettings() {
                 <CardDescription>Organize your transactions with custom labels.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="text-center text-muted-foreground p-8 border-2 border-dashed rounded-md">
-                    <p>Label management is coming soon.</p>
+                <div className="space-y-2">
+                    {labels.map(label => (
+                        <div key={label} className="flex items-center justify-between rounded-md border p-3">
+                            <p className="font-medium">{label}</p>
+                             <div className="flex items-center gap-2">
+                                <Button variant="ghost" size="icon" disabled><Pencil className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" disabled><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </CardContent>
+             <CardFooter>
+                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Add Label
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add New Label</DialogTitle>
+                        </DialogHeader>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Label Name</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="e.g., Tax-deductible" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <DialogFooter>
+                                    <Button type="submit">Create Label</Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
+                    </DialogContent>
+                </Dialog>
+             </CardFooter>
         </Card>
     )
 }
@@ -362,6 +550,8 @@ function LabelsSettings() {
 export default function ConfigurationPage() {
     const [accounts, setAccounts] = useState(initialAccounts);
     const [accountTypes, setAccountTypes] = useState(initialAccountTypes);
+    const [categories, setCategories] = useState(initialTransactionCategories);
+    const [labels, setLabels] = useState(initialTransactionLabels);
 
     return (
         <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
@@ -380,10 +570,10 @@ export default function ConfigurationPage() {
                    <AccountTypesSettings accountTypes={accountTypes} setAccountTypes={setAccountTypes} />
                 </TabsContent>
                 <TabsContent value="categories">
-                   <CategoriesSettings />
+                   <CategoriesSettings categories={categories} setCategories={setCategories} />
                 </TabsContent>
                 <TabsContent value="labels">
-                    <LabelsSettings />
+                    <LabelsSettings labels={labels} setLabels={setLabels} />
                 </TabsContent>
             </Tabs>
         </div>
