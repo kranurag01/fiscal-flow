@@ -16,7 +16,7 @@ import {
     transactionCategories as initialTransactionCategories,
     transactionLabels as initialTransactionLabels,
 } from '@/lib/data';
-import type { Account, AccountType, TransactionCategory } from '@/lib/types';
+import type { Account, AccountType, TransactionCategory, TransactionLabel } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Banknote, CreditCard, Landmark, Pencil, PlusCircle, Trash2, Wallet, TrendingUp, BadgePercent, Home, Car, PiggyBank, Scale, HelpCircle } from 'lucide-react';
@@ -514,33 +514,37 @@ function CategoriesSettings({ categories, setCategories }: { categories: Transac
 
 const labelFormSchema = z.object({
     name: z.string().min(1, 'Label name is required.'),
+    description: z.string().optional(),
 });
 type LabelFormValues = z.infer<typeof labelFormSchema>;
 
-function LabelsSettings({ labels, setLabels }: { labels: string[], setLabels: React.Dispatch<React.SetStateAction<string[]>> }) {
+function LabelsSettings({ labels, setLabels }: { labels: TransactionLabel[], setLabels: React.Dispatch<React.SetStateAction<TransactionLabel[]>> }) {
     const [isAddOpen, setAddOpen] = useState(false);
     const [isEditOpen, setEditOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
-    const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+    const [selectedLabel, setSelectedLabel] = useState<TransactionLabel | null>(null);
 
-    const form = useForm<LabelFormValues>({ resolver: zodResolver(labelFormSchema) });
+    const form = useForm<LabelFormValues>({ 
+        resolver: zodResolver(labelFormSchema),
+        defaultValues: { name: '', description: '' },
+    });
 
     function handleAdd(data: LabelFormValues) {
-        setLabels(prev => [...prev, data.name].sort());
+        setLabels(prev => [...prev, {name: data.name, description: data.description || ''}].sort((a,b) => a.name.localeCompare(b.name)));
         setAddOpen(false);
         form.reset();
     }
     
     function handleEdit(data: LabelFormValues) {
         if (!selectedLabel) return;
-        setLabels(prev => prev.map(l => l === selectedLabel ? data.name : l).sort());
+        setLabels(prev => prev.map(l => l.name === selectedLabel.name ? { ...l, ...data } : l).sort((a, b) => a.name.localeCompare(b.name)));
         setEditOpen(false);
         setSelectedLabel(null);
     }
     
     function handleDelete() {
         if (!selectedLabel) return;
-        setLabels(prev => prev.filter(l => l !== selectedLabel));
+        setLabels(prev => prev.filter(l => l.name !== selectedLabel.name));
         setDeleteOpen(false);
         setSelectedLabel(null);
     }
@@ -555,10 +559,13 @@ function LabelsSettings({ labels, setLabels }: { labels: string[], setLabels: Re
                 <CardContent>
                     <div className="space-y-2">
                         {labels.map(label => (
-                            <div key={label} className="flex items-center justify-between rounded-md border p-3">
-                                <p className="font-medium">{label}</p>
+                            <div key={label.name} className="flex items-center justify-between rounded-md border p-3">
+                                <div>
+                                    <p className="font-medium">{label.name}</p>
+                                    {label.description && <p className="text-sm text-muted-foreground">{label.description}</p>}
+                                </div>
                                  <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedLabel(label); form.reset({ name: label }); setEditOpen(true);}}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedLabel(label); form.reset(label); setEditOpen(true);}}>
                                         <Pencil className="h-4 w-4" />
                                     </Button>
                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedLabel(label); setDeleteOpen(true); }}>
@@ -570,7 +577,7 @@ function LabelsSettings({ labels, setLabels }: { labels: string[], setLabels: Re
                     </div>
                 </CardContent>
                  <CardFooter>
-                    <Button onClick={() => { form.reset(); setAddOpen(true); }}>
+                    <Button onClick={() => { form.reset({ name: '', description: ''}); setAddOpen(true); }}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Add Label
                     </Button>
                  </CardFooter>
@@ -587,6 +594,15 @@ function LabelsSettings({ labels, setLabels }: { labels: string[], setLabels: Re
                             <FormField control={form.control} name="name" render={({ field }) => (
                                 <FormItem><FormLabel>Label Name</FormLabel><FormControl><Input placeholder="e.g., Tax-deductible" {...field} /></FormControl><FormMessage /></FormItem>
                             )}/>
+                            <FormField control={form.control} name="description" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Description (Optional)</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="A brief explanation of the label" {...field} value={field.value || ''} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
                             <DialogFooter>
                                 <Button type="submit">{isEditOpen ? 'Save Changes' : 'Create Label'}</Button>
                             </DialogFooter>
@@ -600,7 +616,7 @@ function LabelsSettings({ labels, setLabels }: { labels: string[], setLabels: Re
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This will permanently delete the label "{selectedLabel}".</AlertDialogDescription>
+                    <AlertDialogDescription>This will permanently delete the label "{selectedLabel?.name}".</AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setSelectedLabel(null)}>Cancel</AlertDialogCancel>
@@ -645,5 +661,3 @@ export default function ConfigurationPage() {
         </div>
     );
 }
-
-    

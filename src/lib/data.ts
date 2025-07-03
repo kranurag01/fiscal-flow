@@ -1,4 +1,4 @@
-import type { Account, Budget, Transaction, AccountType, Reminder } from './types';
+import type { Account, Budget, Transaction, AccountType, Reminder, TransactionLabel, TransactionCategory } from './types';
 import { subDays, addDays } from 'date-fns';
 
 export const accountTypes: AccountType[] = [
@@ -15,7 +15,7 @@ export const accounts: Account[] = [
   { id: 'acc_4', name: 'Cash Wallet', typeId: 'type_4', balance: 340.0 },
 ];
 
-export const transactionCategories = [
+export const transactionCategories: TransactionCategory[] = [
   {
     name: 'Food & Drink',
     subcategories: ['Groceries', 'Restaurants', 'Coffee Shops', 'Bars'],
@@ -50,7 +50,12 @@ export const transactionCategories = [
   { name: 'Other', subcategories: [] },
 ];
 
-export const transactionLabels = ['Personal', 'Work', 'Household', 'Reimbursable'];
+export const transactionLabels: TransactionLabel[] = [
+    { name: 'Personal', description: 'For personal expenses and purchases.'},
+    { name: 'Work', description: 'Work-related expenses that may be reimbursable.' },
+    { name: 'Household', description: 'Shared expenses for the home.'},
+    { name: 'Reimbursable', description: 'Expenses that will be reimbursed.' }
+];
 
 export const transactions: Transaction[] = [
   {

@@ -39,6 +39,11 @@ export type TransactionCategory = {
   subcategories: string[];
 };
 
+export type TransactionLabel = {
+    name: string;
+    description: string;
+};
+
 export type Reminder = {
   id: string;
   description: string;
