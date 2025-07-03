@@ -33,7 +33,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <Header />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <div className="flex-1 overflow-y-auto">{children}</div>
         <Link href="/transactions?action=add" passHref>
           <Button
             size="icon"
