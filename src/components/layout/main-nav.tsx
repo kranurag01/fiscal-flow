@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -9,6 +10,7 @@ import {
   Bot,
   Settings,
   BellRing,
+  CalendarDays,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -30,6 +32,7 @@ const menuItems = [
   { href: '/budgets', label: 'Budgets', icon: Target },
   { href: '/reminders', label: 'Reminders', icon: BellRing },
   { href: '/reports', label: 'Analytics', icon: BarChart3 },
+  { href: '/calendar', label: 'Calendar', icon: CalendarDays },
   { href: '/predictions', label: 'Predictions', icon: Bot },
   { href: '/configuration', label: 'Configuration', icon: Settings },
 ];
