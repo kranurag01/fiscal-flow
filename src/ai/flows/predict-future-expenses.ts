@@ -41,15 +41,17 @@ export async function predictFutureExpenses(input: PredictFutureExpensesInput): 
   return predictFutureExpensesFlow(input);
 }
 
-const analyzeSpendingPatterns = ai.defineTool({
-  name: 'analyzeSpendingPatterns',
-  description: 'Analyzes past transaction data to identify spending patterns and trends.',
-  inputSchema: z.object({
-    transactions: z.array(TransactionSchema).describe('A list of past transactions.'),
-  }),
-  outputSchema: z.object({
-    spendingPatterns: z.string().describe('A description of the identified spending patterns and trends.'),
-  }),
+const analyzeSpendingPatterns = ai.defineTool(
+  {
+    name: 'analyzeSpendingPatterns',
+    description: 'Analyzes past transaction data to identify spending patterns and trends.',
+    inputSchema: z.object({
+      transactions: z.array(TransactionSchema).describe('A list of past transactions.'),
+    }),
+    outputSchema: z.object({
+      spendingPatterns: z.string().describe('A description of the identified spending patterns and trends.'),
+    }),
+  },
   async (input) => {
     // Placeholder implementation for analyzing spending patterns.
     // In a real application, this would involve analyzing the transaction data
@@ -57,8 +59,8 @@ const analyzeSpendingPatterns = ai.defineTool({
     return {
       spendingPatterns: `Analyzed ${input.transactions.length} transactions.  Spending patterns will be inserted here after analyzing transaction data.`,
     };
-  },
-});
+  }
+);
 
 const predictExpensesPrompt = ai.definePrompt({
   name: 'predictExpensesPrompt',
