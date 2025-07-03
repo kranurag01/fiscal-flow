@@ -34,15 +34,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <SidebarInset>
         <Header />
         <div className="flex-1 overflow-y-auto">{children}</div>
-        <Link href="/transactions?action=add" passHref>
-          <Button
-            size="icon"
-            className="fixed bottom-6 left-6 h-14 w-14 rounded-full shadow-lg z-50 md:left-[calc(var(--sidebar-width-icon)_+1.5rem)] group-data-[state=expanded]/sidebar-wrapper:md:left-[calc(var(--sidebar-width)_+1.5rem)] transition-[left] duration-200 ease-linear"
-          >
+        <Button
+          asChild
+          size="icon"
+          className="fixed bottom-6 left-6 h-14 w-14 rounded-full shadow-lg z-50 md:left-[calc(var(--sidebar-width-icon)_+1.5rem)] group-data-[state=expanded]/sidebar-wrapper:md:left-[calc(var(--sidebar-width)_+1.5rem)] transition-[left] duration-200 ease-linear"
+        >
+          <Link href="/transactions?action=add">
             <Plus className="h-6 w-6" />
             <span className="sr-only">Add Transaction</span>
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </SidebarInset>
     </SidebarProvider>
   );
