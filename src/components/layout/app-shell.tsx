@@ -11,7 +11,9 @@ import { MainNav } from './main-nav';
 import { Header } from './header';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
-import { Coins } from 'lucide-react';
+import { Coins, Plus } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -32,6 +34,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <SidebarInset>
         <Header />
         <main className="flex-1 overflow-y-auto">{children}</main>
+        <Link href="/transactions?action=add" passHref>
+          <Button
+            size="icon"
+            className="fixed bottom-6 left-6 h-14 w-14 rounded-full shadow-lg z-50 md:left-[calc(var(--sidebar-width-icon)_+1.5rem)] group-data-[state=expanded]/sidebar-wrapper:md:left-[calc(var(--sidebar-width)_+1.5rem)] transition-[left] duration-200 ease-linear"
+          >
+            <Plus className="h-6 w-6" />
+            <span className="sr-only">Add Transaction</span>
+          </Button>
+        </Link>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -112,12 +113,23 @@ const formSchema = z.object({
 
 type TransactionFormValues = z.infer<typeof formSchema>;
 
-export default function TransactionsPage() {
+
+function TransactionsPageContent() {
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [openAdd, setOpenAdd] = useState(false);
   const [openImport, setOpenImport] = useState(false);
   const [parsedData, setParsedData] = useState<Transaction[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'add') {
+      setOpenAdd(true);
+      router.replace('/transactions', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
@@ -700,4 +712,12 @@ export default function TransactionsPage() {
       </div>
     </div>
   );
+}
+
+export default function TransactionsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TransactionsPageContent />
+    </Suspense>
+  )
 }
