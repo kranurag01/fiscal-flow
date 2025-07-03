@@ -33,3 +33,13 @@ export type Budget = {
   amount: number;
   spent: number;
 };
+
+export type Reminder = {
+  id: string;
+  description: string;
+  amount: number;
+  dueDate: string; // ISO 8601 format
+  frequency: 'once' | 'weekly' | 'monthly' | 'yearly';
+  accountId: string;
+  isPaid: boolean;
+};

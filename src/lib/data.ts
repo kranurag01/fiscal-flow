@@ -1,5 +1,5 @@
-import type { Account, Budget, Transaction, AccountType } from './types';
-import { subDays } from 'date-fns';
+import type { Account, Budget, Transaction, AccountType, Reminder } from './types';
+import { subDays, addDays } from 'date-fns';
 
 export const accountTypes: AccountType[] = [
   { id: 'type_1', name: 'Checking', classification: 'asset', icon: 'Landmark' },
@@ -227,4 +227,10 @@ export const budgets: Budget[] = [
   { id: 'bud_5', category: 'Subscriptions', amount: 50, spent: 15.99 },
   { id: 'bud_6', category: 'Health & Fitness', amount: 50, spent: 49.99 },
   { id: 'bud_7', category: 'Utilities', amount: 100, spent: 75.60 },
+];
+
+export const reminders: Reminder[] = [
+  { id: 'rem_1', description: 'Rent Payment', amount: 1200, dueDate: addDays(new Date(), 5).toISOString(), frequency: 'monthly', accountId: 'acc_1', isPaid: false },
+  { id: 'rem_2', description: 'Netflix Subscription', amount: 15.99, dueDate: addDays(new Date(), 10).toISOString(), frequency: 'monthly', accountId: 'acc_3', isPaid: false },
+  { id: 'rem_3', description: 'Car Insurance', amount: 150, dueDate: addDays(new Date(), 20).toISOString(), frequency: 'yearly', accountId: 'acc_1', isPaid: true },
 ];
