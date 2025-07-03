@@ -51,6 +51,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import Papa from 'papaparse';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const formSchema = z.object({
   description: z.string().min(1, 'Description is required.'),
@@ -105,7 +108,10 @@ type TransactionFormValues = z.infer<typeof formSchema>;
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
-  const [open, setOpen] = useState(false);
+  const [openAdd, setOpenAdd] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
+  const [parsedData, setParsedData] = useState<Transaction[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
@@ -162,7 +168,7 @@ export default function TransactionsPage() {
         };
         setTransactions((prev) => [newTransaction, ...prev]);
     }
-    setOpen(false);
+    setOpenAdd(false);
     form.reset({
         description: '',
         type: 'expense',
@@ -197,19 +203,166 @@ export default function TransactionsPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+  
+  const handleFileParse = (file: File) => {
+    setParsedData([]);
+    setImportError(null);
+
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+            const requiredColumns = ['Date', 'Description', 'Category', 'Account', 'Amount'];
+            if (!results.meta.fields || !requiredColumns.every(col => results.meta.fields!.includes(col))) {
+                setImportError(`Invalid CSV format. Required columns are: ${requiredColumns.join(', ')}`);
+                return;
+            }
+            
+            const newTransactions: Transaction[] = [];
+            const errors: string[] = [];
+
+            (results.data as any[]).forEach((row, index) => {
+                if (Object.values(row).every(val => val === "")) return; // Skip empty rows
+
+                const account = accounts.find((acc) => acc.name === row.Account);
+                if (!account) {
+                    errors.push(`Row ${index + 2}: Account "${row.Account}" not found.`);
+                    return;
+                }
+
+                const amount = parseFloat(row.Amount);
+                if (isNaN(amount)) {
+                    errors.push(`Row ${index + 2}: Invalid amount "${row.Amount}".`);
+                    return;
+                }
+
+                if (row.Category === 'Transfers') {
+                    errors.push(`Row ${index + 2}: CSV import for "Transfers" is not supported. Please add transfers manually.`);
+                    return;
+                }
+                
+                newTransactions.push({
+                    id: `imported_${new Date().getTime()}_${index}`,
+                    date: new Date(row.Date).toISOString(),
+                    description: row.Description,
+                    amount: Math.abs(amount),
+                    type: amount >= 0 ? 'income' : 'expense',
+                    category: row.Category,
+                    accountId: account.id,
+                });
+            });
+
+            if (errors.length > 0) {
+                setImportError(errors.join('\n'));
+                setParsedData([]);
+            } else {
+                setParsedData(newTransactions);
+                setImportError(null);
+            }
+        },
+        error: (error: any) => {
+            setImportError(error.message);
+        },
+    });
+  }
+
+  const handleConfirmImport = () => {
+    setTransactions(prev => [...parsedData, ...prev]);
+    setOpenImport(false);
+    setParsedData([]);
+    setImportError(null);
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Transactions</h2>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            <Upload className="mr-2 h-4 w-4" /> Import CSV
-          </Button>
+          
+          <Dialog open={openImport} onOpenChange={setOpenImport}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Upload className="mr-2 h-4 w-4" /> Import CSV
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                  <DialogTitle>Import Transactions</DialogTitle>
+                  <DialogDescription>
+                      Select a CSV file to import. Columns must be: Date, Description, Category, Account, Amount.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                  <Input 
+                      type="file" 
+                      accept=".csv"
+                      onChange={(e) => e.target.files && handleFileParse(e.target.files[0])}
+                  />
+                  {importError && (
+                      <Alert variant="destructive">
+                          <AlertTitle>Import Error</AlertTitle>
+                          <AlertDescription className="whitespace-pre-wrap text-xs">
+                              {importError}
+                          </AlertDescription>
+                      </Alert>
+                  )}
+                  {parsedData.length > 0 && !importError && (
+                      <>
+                          <p className="text-sm font-medium">Previewing {parsedData.length} transactions:</p>
+                          <ScrollArea className="h-64 rounded-md border">
+                              <Table>
+                                  <TableHeader>
+                                      <TableRow>
+                                          <TableHead>Date</TableHead>
+                                          <TableHead>Description</TableHead>
+                                          <TableHead>Category</TableHead>
+                                          <TableHead>Account</TableHead>
+                                          <TableHead className="text-right">Amount</TableHead>
+                                      </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                      {parsedData.map((transaction) => (
+                                      <TableRow key={transaction.id}>
+                                          <TableCell>
+                                          {new Date(transaction.date).toLocaleDateString()}
+                                          </TableCell>
+                                          <TableCell>{transaction.description}</TableCell>
+                                          <TableCell>
+                                              <Badge variant="outline">{transaction.category}</Badge>
+                                          </TableCell>
+                                          <TableCell>{getAccountName(transaction.accountId)}</TableCell>
+                                          <TableCell
+                                          className={`text-right font-semibold ${
+                                              transaction.type === 'income'
+                                              ? 'text-green-600'
+                                              : 'text-red-600'
+                                          }`}
+                                          >
+                                          {transaction.type === 'income' ? '+' : '-'}
+                                          {formatCurrency(transaction.amount)}
+                                          </TableCell>
+                                      </TableRow>
+                                      ))}
+                                  </TableBody>
+                              </Table>
+                          </ScrollArea>
+                      </>
+                  )}
+              </div>
+              <DialogFooter>
+                  <Button variant="outline" onClick={() => setOpenImport(false)}>Cancel</Button>
+                  <Button onClick={handleConfirmImport} disabled={parsedData.length === 0 || !!importError}>
+                      Import {parsedData.length} transactions
+                  </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <Button variant="outline" onClick={handleExportCSV}>
             <Download className="mr-2 h-4 w-4" /> Export CSV
           </Button>
-          <Dialog open={open} onOpenChange={setOpen}>
+          
+          <Dialog open={openAdd} onOpenChange={setOpenAdd}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Transaction
