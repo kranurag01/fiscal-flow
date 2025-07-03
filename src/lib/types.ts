@@ -3,9 +3,10 @@ export type Transaction = {
   date: string; // ISO 8601 format
   description: string;
   amount: number;
-  type: 'income' | 'expense' | 'transfer';
+  type: 'income' | 'expense';
   category: string;
   accountId: string;
+  transferId?: string;
 };
 
 export type Account = {

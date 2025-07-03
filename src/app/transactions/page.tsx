@@ -15,7 +15,7 @@ import { transactions as initialTransactions, accounts } from '@/lib/data';
 import type { Transaction } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Download, PlusCircle, Upload } from 'lucide-react';
+import { ArrowRightLeft, Download, PlusCircle, Upload } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const formSchema = z.object({
   description: z.string().min(1, 'Description is required.'),
@@ -117,29 +123,32 @@ export default function TransactionsPage() {
   
   function onSubmit(data: TransactionFormValues) {
     if (data.type === 'transfer') {
-        const fromAccountName = getAccountName(data.fromAccountId!);
-        const toAccountName = getAccountName(data.toAccountId!);
+      const transferId = `transfer_${new Date().getTime()}`;
+      const fromAccountName = getAccountName(data.fromAccountId!);
+      const toAccountName = getAccountName(data.toAccountId!);
 
-        const expenseTransaction: Transaction = {
-            id: `txn_${new Date().getTime()}_exp`,
-            date: new Date().toISOString(),
-            description: data.description || `Transfer to ${toAccountName}`,
-            amount: data.amount,
-            type: 'expense',
-            category: 'Transfers',
-            accountId: data.fromAccountId!,
-        };
+      const expenseTransaction: Transaction = {
+        id: `txn_${new Date().getTime()}_exp`,
+        date: new Date().toISOString(),
+        description: data.description || `Transfer to ${toAccountName}`,
+        amount: data.amount,
+        type: 'expense',
+        category: 'Transfers',
+        accountId: data.fromAccountId!,
+        transferId,
+      };
 
-        const incomeTransaction: Transaction = {
-            id: `txn_${new Date().getTime()}_inc`,
-            date: new Date().toISOString(),
-            description: data.description || `Transfer from ${fromAccountName}`,
-            amount: data.amount,
-            type: 'income',
-            category: 'Transfers',
-            accountId: data.toAccountId!,
-        };
-        setTransactions((prev) => [incomeTransaction, expenseTransaction, ...prev]);
+      const incomeTransaction: Transaction = {
+        id: `txn_${new Date().getTime()}_inc`,
+        date: new Date().toISOString(),
+        description: data.description || `Transfer from ${fromAccountName}`,
+        amount: data.amount,
+        type: 'income',
+        category: 'Transfers',
+        accountId: data.toAccountId!,
+        transferId,
+      };
+      setTransactions((prev) => [incomeTransaction, expenseTransaction, ...prev]);
 
     } else {
         const newTransaction: Transaction = {
@@ -376,24 +385,64 @@ export default function TransactionsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell>{new Date(transaction.date).toLocaleDateString()}</TableCell>
-                <TableCell className="font-medium">{transaction.description}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{transaction.category}</Badge>
-                </TableCell>
-                <TableCell>{getAccountName(transaction.accountId)}</TableCell>
-                <TableCell
-                  className={`text-right font-semibold ${
-                    transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                  }`}
-                >
-                  {transaction.type === 'income' ? '+' : '-'}
-                  {formatCurrency(transaction.amount)}
-                </TableCell>
-              </TableRow>
-            ))}
+            {transactions.map((transaction) => {
+              const isTransfer =
+                transaction.category === 'Transfers' && transaction.transferId;
+              const relatedTransaction = isTransfer
+                ? transactions.find(
+                    (t) =>
+                      t.transferId === transaction.transferId &&
+                      t.id !== transaction.id
+                  )
+                : undefined;
+
+              return (
+                <TableRow key={transaction.id}>
+                  <TableCell>
+                    {new Date(transaction.date).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="font-medium flex items-center">
+                    {transaction.description}
+                    {isTransfer && relatedTransaction && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="ml-2 cursor-pointer">
+                              <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {transaction.type === 'expense'
+                                ? `Transfer to: ${getAccountName(
+                                    relatedTransaction.accountId
+                                  )}`
+                                : `Transfer from: ${getAccountName(
+                                    relatedTransaction.accountId
+                                  )}`}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{transaction.category}</Badge>
+                  </TableCell>
+                  <TableCell>{getAccountName(transaction.accountId)}</TableCell>
+                  <TableCell
+                    className={`text-right font-semibold ${
+                      transaction.type === 'income'
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                    }`}
+                  >
+                    {transaction.type === 'income' ? '+' : '-'}
+                    {formatCurrency(transaction.amount)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
