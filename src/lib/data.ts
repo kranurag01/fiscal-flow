@@ -6,6 +6,7 @@ export const accountTypes: AccountType[] = [
   { id: 'type_2', name: 'Savings', classification: 'asset', icon: 'Banknote' },
   { id: 'type_3', name: 'Credit Card', classification: 'liability', icon: 'CreditCard' },
   { id: 'type_4', name: 'Cash', classification: 'asset', icon: 'Wallet' },
+  { id: 'type_5', name: 'Loan/IOU', classification: 'asset', icon: 'Scale' },
 ];
 
 export const accounts: Account[] = [
@@ -46,6 +47,7 @@ export const transactionCategories: TransactionCategory[] = [
   },
   { name: 'Salary', subcategories: [] },
   { name: 'Freelance', subcategories: [] },
+  { name: 'Reimbursement', subcategories: [] },
   { name: 'Transfers', subcategories: [] },
   { name: 'Other', subcategories: [] },
 ];
