@@ -40,16 +40,17 @@ export function MainNav({ pathname }: MainNavProps) {
       <SidebarMenu>
         {menuItems.map((item) => (
           <SidebarMenuItem key={item.href}>
-            <Link href={item.href}>
-              <SidebarMenuButton
-                isActive={pathname === item.href}
-                className="w-full justify-start"
-                tooltip={item.label}
-              >
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === item.href}
+              className="w-full justify-start"
+              tooltip={item.label}
+            >
+              <Link href={item.href}>
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
-              </SidebarMenuButton>
-            </Link>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
       </SidebarMenu>
