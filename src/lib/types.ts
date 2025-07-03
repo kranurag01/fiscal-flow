@@ -31,7 +31,6 @@ export type Budget = {
   id:string;
   category: string;
   amount: number;
-  spent: number;
 };
 
 export type Reminder = {

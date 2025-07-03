@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { budgets, transactions } from '@/lib/data';
+import { budgets as initialBudgets, transactions } from '@/lib/data';
 import { formatCurrency } from '@/lib/utils';
 import { PlusCircle, Zap } from 'lucide-react';
 import {
@@ -17,7 +17,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -28,15 +27,50 @@ import {
 import { estimateBudget, EstimateBudgetOutput } from '@/ai/flows/estimate-budget';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import type { Budget } from '@/lib/types';
+
+const budgetFormSchema = z.object({
+  category: z.string({ required_error: 'Please select a category.' }),
+  amount: z.coerce.number().positive('Amount must be a positive number.'),
+});
+
+type BudgetFormValues = z.infer<typeof budgetFormSchema>;
 
 export default function BudgetsPage() {
+  const [budgets, setBudgets] = useState<Budget[]>(initialBudgets);
   const [open, setOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('');
   const [isEstimating, setIsEstimating] = useState(false);
   const [estimation, setEstimation] = useState<EstimateBudgetOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const uniqueCategories = [...new Set(transactions.map((t) => t.category))];
+  const form = useForm<BudgetFormValues>({
+    resolver: zodResolver(budgetFormSchema),
+    defaultValues: {
+      amount: undefined,
+    },
+  });
+
+  const selectedCategory = form.watch('category');
+
+  const spendingByCategory = useMemo(() => {
+    return transactions.reduce((acc, transaction) => {
+      if (transaction.type === 'expense') {
+        if (!acc[transaction.category]) {
+          acc[transaction.category] = 0;
+        }
+        acc[transaction.category] += transaction.amount;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+  }, []); // Static for now, would depend on transactions in a real app
+
+  const uniqueCategories = [...new Set(transactions.map((t) => t.category))].filter(
+    (cat) => cat !== 'Transfers' && !budgets.some((b) => b.category === cat)
+  );
 
   const handleEstimateBudget = async () => {
     if (!selectedCategory) {
@@ -60,11 +94,28 @@ export default function BudgetsPage() {
     }
   };
 
+  function onSubmit(data: BudgetFormValues) {
+    const newBudget: Budget = {
+      id: `bud_${new Date().getTime()}`,
+      ...data,
+    };
+    setBudgets((prev) => [...prev, newBudget]);
+    setOpen(false);
+    form.reset();
+  }
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Budgets</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (!isOpen) {
+            form.reset();
+            setEstimation(null);
+            setError(null);
+          }
+        }}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -78,71 +129,96 @@ export default function BudgetsPage() {
                 Set a new budget for a category. You can also use AI to get an estimate.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category" className="text-right">
-                  Category
-                </Label>
-                <Select onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {uniqueCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="amount" className="text-right">
-                  Amount
-                </Label>
-                <Input id="amount" type="number" className="col-span-3" placeholder="e.g., ₹500.00" />
-              </div>
-              <div className="col-span-4">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleEstimateBudget}
-                  disabled={isEstimating}
-                >
-                  {isEstimating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Zap className="mr-2 h-4 w-4" />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {uniqueCategories.map((cat) => (
+                              <SelectItem key={cat} value={cat}>
+                                {cat}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Amount</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="e.g., ₹500.00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleEstimateBudget}
+                    disabled={isEstimating || !selectedCategory}
+                    type="button"
+                  >
+                    {isEstimating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Zap className="mr-2 h-4 w-4" />
+                    )}
+                    Estimate with AI
+                  </Button>
+                  {estimation && (
+                    <Alert>
+                      <Zap className="h-4 w-4" />
+                      <AlertTitle>AI-Powered Estimation</AlertTitle>
+                      <AlertDescription>
+                        <div className="flex items-center justify-between">
+                            <span>
+                                Suggested: <strong>{formatCurrency(estimation.estimatedBudget)}</strong>.
+                            </span>
+                            <Button variant="link" size="sm" type="button" onClick={() => form.setValue('amount', estimation.estimatedBudget, { shouldValidate: true })}>Use this amount</Button>
+                        </div>
+                        <p className="text-xs mt-1">{estimation.reasoning}</p>
+                      </AlertDescription>
+                    </Alert>
                   )}
-                  Estimate with AI
-                </Button>
-              </div>
-              {estimation && (
-                <Alert>
-                  <Zap className="h-4 w-4" />
-                  <AlertTitle>AI-Powered Estimation</AlertTitle>
-                  <AlertDescription>
-                    Suggested budget: <strong>{formatCurrency(estimation.estimatedBudget)}</strong>.
-                    <p className="text-xs mt-1">{estimation.reasoning}</p>
-                  </AlertDescription>
-                </Alert>
-              )}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-            <DialogFooter>
-              <Button type="submit">Save Budget</Button>
-            </DialogFooter>
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Save Budget</Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {budgets.map((budget) => {
-          const progress = (budget.spent / budget.amount) * 100;
+          const spent = spendingByCategory[budget.category] || 0;
+          const progress = (spent / budget.amount) * 100;
           return (
             <Card key={budget.id}>
               <CardHeader>
@@ -159,7 +235,7 @@ export default function BudgetsPage() {
               </CardHeader>
               <CardContent>
                 <div className="mb-2">
-                  <span className="font-bold">{formatCurrency(budget.spent)}</span>
+                  <span className="font-bold">{formatCurrency(spent)}</span>
                   <span className="text-muted-foreground"> / {formatCurrency(budget.amount)}</span>
                 </div>
                 <Progress value={progress} className="w-full" />

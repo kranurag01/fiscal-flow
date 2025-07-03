@@ -220,13 +220,13 @@ export const transactions: Transaction[] = [
 
 
 export const budgets: Budget[] = [
-  { id: 'bud_1', category: 'Food & Drink', amount: 700, spent: 369.72 },
-  { id: 'bud_2', category: 'Shopping', amount: 300, spent: 61.09 },
-  { id: 'bud_3', category: 'Transportation', amount: 150, spent: 55.2 },
-  { id: 'bud_4', category: 'Entertainment', amount: 100, spent: 32.00 },
-  { id: 'bud_5', category: 'Subscriptions', amount: 50, spent: 15.99 },
-  { id: 'bud_6', category: 'Health & Fitness', amount: 50, spent: 49.99 },
-  { id: 'bud_7', category: 'Utilities', amount: 100, spent: 75.60 },
+  { id: 'bud_1', category: 'Food & Drink', amount: 700 },
+  { id: 'bud_2', category: 'Shopping', amount: 300 },
+  { id: 'bud_3', category: 'Transportation', amount: 150 },
+  { id: 'bud_4', category: 'Entertainment', amount: 100 },
+  { id: 'bud_5', category: 'Subscriptions', amount: 50 },
+  { id: 'bud_6', category: 'Health & Fitness', amount: 50 },
+  { id: 'bud_7', category: 'Utilities', amount: 100 },
 ];
 
 export const reminders: Reminder[] = [
