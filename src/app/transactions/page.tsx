@@ -49,9 +49,50 @@ import {
 const formSchema = z.object({
   description: z.string().min(1, 'Description is required.'),
   amount: z.coerce.number().positive('Amount must be a positive number.'),
-  type: z.enum(['income', 'expense'], { required_error: 'Type is required.' }),
-  category: z.string().min(1, 'Category is required.'),
-  accountId: z.string({ required_error: 'Account is required.' }),
+  type: z.enum(['income', 'expense', 'transfer'], { required_error: 'Type is required.' }),
+  category: z.string().optional(),
+  accountId: z.string().optional(),
+  fromAccountId: z.string().optional(),
+  toAccountId: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.type === 'income' || data.type === 'expense') {
+    if (!data.category || data.category.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Category is required.',
+        path: ['category'],
+      });
+    }
+    if (!data.accountId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Account is required.',
+        path: ['accountId'],
+      });
+    }
+  } else if (data.type === 'transfer') {
+    if (!data.fromAccountId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'From account is required.',
+        path: ['fromAccountId'],
+      });
+    }
+    if (!data.toAccountId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'To account is required.',
+        path: ['toAccountId'],
+      });
+    }
+    if (data.fromAccountId && data.toAccountId && data.fromAccountId === data.toAccountId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Accounts cannot be the same.',
+        path: ['toAccountId'],
+      });
+    }
+  }
 });
 
 type TransactionFormValues = z.infer<typeof formSchema>;
@@ -65,27 +106,58 @@ export default function TransactionsPage() {
     defaultValues: {
       description: '',
       type: 'expense',
-      category: '',
     },
   });
+
+  const transactionType = form.watch('type');
 
   const getAccountName = (accountId: string) => {
     return accounts.find((acc) => acc.id === accountId)?.name || 'N/A';
   };
   
   function onSubmit(data: TransactionFormValues) {
-    const newTransaction: Transaction = {
-      id: `txn_${new Date().getTime()}`,
-      date: new Date().toISOString(),
-      description: data.description,
-      amount: data.amount,
-      type: data.type,
-      category: data.category,
-      accountId: data.accountId,
-    };
-    setTransactions((prev) => [newTransaction, ...prev]);
+    if (data.type === 'transfer') {
+        const fromAccountName = getAccountName(data.fromAccountId!);
+        const toAccountName = getAccountName(data.toAccountId!);
+
+        const expenseTransaction: Transaction = {
+            id: `txn_${new Date().getTime()}_exp`,
+            date: new Date().toISOString(),
+            description: data.description || `Transfer to ${toAccountName}`,
+            amount: data.amount,
+            type: 'expense',
+            category: 'Transfers',
+            accountId: data.fromAccountId!,
+        };
+
+        const incomeTransaction: Transaction = {
+            id: `txn_${new Date().getTime()}_inc`,
+            date: new Date().toISOString(),
+            description: data.description || `Transfer from ${fromAccountName}`,
+            amount: data.amount,
+            type: 'income',
+            category: 'Transfers',
+            accountId: data.toAccountId!,
+        };
+        setTransactions((prev) => [incomeTransaction, expenseTransaction, ...prev]);
+
+    } else {
+        const newTransaction: Transaction = {
+          id: `txn_${new Date().getTime()}`,
+          date: new Date().toISOString(),
+          description: data.description,
+          amount: data.amount,
+          type: data.type as 'income' | 'expense',
+          category: data.category!,
+          accountId: data.accountId!,
+        };
+        setTransactions((prev) => [newTransaction, ...prev]);
+    }
     setOpen(false);
-    form.reset();
+    form.reset({
+        description: '',
+        type: 'expense',
+    });
   }
 
   return (
@@ -121,7 +193,7 @@ export default function TransactionsPage() {
                       <FormItem>
                         <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Coffee" {...field} />
+                          <Input placeholder="e.g., Coffee, Transfer to savings" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -155,49 +227,105 @@ export default function TransactionsPage() {
                           <SelectContent>
                             <SelectItem value="expense">Expense</SelectItem>
                             <SelectItem value="income">Income</SelectItem>
+                            <SelectItem value="transfer">Transfer</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                   <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., Food & Drink" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                    control={form.control}
-                    name="accountId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Account</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select an account" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {accounts.map(account => (
-                               <SelectItem key={account.id} value={account.id}>
-                                {account.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {transactionType === 'transfer' ? (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="fromAccountId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>From Account</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select an account" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {accounts.map(account => (
+                                   <SelectItem key={account.id} value={account.id}>
+                                    {account.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="toAccountId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>To Account</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select an account" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {accounts.map(account => (
+                                   <SelectItem key={account.id} value={account.id}>
+                                    {account.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  ) : (
+                    <>
+                       <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Food & Drink" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                       <FormField
+                        control={form.control}
+                        name="accountId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Account</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select an account" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {accounts.map(account => (
+                                   <SelectItem key={account.id} value={account.id}>
+                                    {account.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
                   <DialogFooter>
                     <Button type="submit">Add Transaction</Button>
                   </DialogFooter>
