@@ -334,8 +334,8 @@ export default function TransactionsPage() {
                                           <TableCell
                                           className={`text-right font-semibold ${
                                               transaction.type === 'income'
-                                              ? 'text-green-600'
-                                              : 'text-red-600'
+                                              ? 'text-primary'
+                                              : 'text-destructive'
                                           }`}
                                           >
                                           {transaction.type === 'income' ? '+' : '-'}
@@ -586,8 +586,8 @@ export default function TransactionsPage() {
                   <TableCell
                     className={`text-right font-semibold ${
                       transaction.type === 'income'
-                        ? 'text-green-600'
-                        : 'text-red-600'
+                        ? 'text-primary'
+                        : 'text-destructive'
                     }`}
                   >
                     {transaction.type === 'income' ? '+' : '-'}

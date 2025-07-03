@@ -30,7 +30,7 @@ export function StatCards() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Monthly Income</CardTitle>
-          <ArrowUp className="h-4 w-4 text-green-500" />
+          <ArrowUp className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(monthlyIncome)}</div>
@@ -40,7 +40,7 @@ export function StatCards() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Monthly Expenses</CardTitle>
-          <ArrowDown className="h-4 w-4 text-red-500" />
+          <ArrowDown className="h-4 w-4 text-destructive" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(monthlyExpense)}</div>

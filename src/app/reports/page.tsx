@@ -31,7 +31,7 @@ export default function AnalyticsPage() {
   const dailySummaryData = transactions
     .filter(t => new Date(t.date) >= last30Days)
     .reduce((acc, curr) => {
-      const day = format(new Date(curr.date), 'MMM dd');
+      const day = format(new Date(curr.date), 'yyyy-MM-dd');
       if (!acc[day]) {
         acc[day] = { date: day, income: 0, expense: 0 };
       }
@@ -42,7 +42,13 @@ export default function AnalyticsPage() {
       }
       return acc;
     }, {} as Record<string, { date: string, income: number, expense: number }>);
-  const dailySummaryChartData = Object.values(dailySummaryData).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  
+  const dailySummaryChartData = Object.values(dailySummaryData)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map(item => ({
+      ...item,
+      date: format(new Date(item.date), 'MMM dd'),
+    }));
 
   const budgetSummaryData = budgets.map(b => ({
     name: b.category,
@@ -150,7 +156,7 @@ export default function AnalyticsPage() {
             <CardTitle className="text-sm font-medium">Net Earnings (This Month)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${netEarnings >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+            <div className={`text-2xl font-bold ${netEarnings >= 0 ? 'text-primary' : 'text-destructive'}`}>
               {formatCurrency(netEarnings)}
             </div>
             <p className="text-xs text-muted-foreground">Income minus expenses</p>
