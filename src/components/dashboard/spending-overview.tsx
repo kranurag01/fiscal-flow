@@ -35,7 +35,7 @@ export function SpendingOverview() {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => `${formatCurrency(value, 'USD', 0)}`}
+              tickFormatter={(value) => `${formatCurrency(value, 'INR', 0)}`}
             />
             <Tooltip
                 cursor={{fill: 'hsl(var(--muted))'}}

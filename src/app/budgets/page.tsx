@@ -100,7 +100,7 @@ export default function BudgetsPage() {
                 <Label htmlFor="amount" className="text-right">
                   Amount
                 </Label>
-                <Input id="amount" type="number" className="col-span-3" placeholder="e.g., $500.00" />
+                <Input id="amount" type="number" className="col-span-3" placeholder="e.g., ₹500.00" />
               </div>
               <div className="col-span-4">
                 <Button

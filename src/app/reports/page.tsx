@@ -193,7 +193,7 @@ export default function AnalyticsPage() {
               <AreaChart data={accountBalanceData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis tickFormatter={(value) => formatCurrency(value, 'USD', 0)} fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis tickFormatter={(value) => formatCurrency(value, 'INR', 0)} fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{fill: 'hsl(var(--muted))'}} />
                 <Legend />
                 {accounts.map((account, index) => (
@@ -214,7 +214,7 @@ export default function AnalyticsPage() {
               <AreaChart data={netWorthOverTimeData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis tickFormatter={(value) => formatCurrency(value, 'USD', 0)} fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis tickFormatter={(value) => formatCurrency(value, 'INR', 0)} fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{fill: 'hsl(var(--muted))'}} />
                 <Area type="monotone" dataKey="netWorth" name="Net Worth" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
               </AreaChart>
@@ -232,7 +232,7 @@ export default function AnalyticsPage() {
               <BarChart data={dailySummaryChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false}/>
-                <YAxis tickFormatter={(value) => formatCurrency(value, 'USD', 0)} fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis tickFormatter={(value) => formatCurrency(value, 'INR', 0)} fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{fill: 'hsl(var(--muted))'}}/>
                 <Legend />
                 <Bar dataKey="income" fill="hsl(var(--chart-1))" name="Income" radius={[4, 4, 0, 0]} />
@@ -251,7 +251,7 @@ export default function AnalyticsPage() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={budgetSummaryData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" tickFormatter={(value) => formatCurrency(value, 'USD', 0)} fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis type="number" tickFormatter={(value) => formatCurrency(value, 'INR', 0)} fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis type="category" dataKey="name" width={100} fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip formatter={(value: number) => formatCurrency(value)} cursor={{fill: 'hsl(var(--muted))'}} />
                 <Legend />
